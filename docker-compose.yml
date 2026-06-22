@@ -1,0 +1,95 @@
+name: nexus
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: nexus_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - nexus_net
+
+  mail:
+    image: mailhog/mailhog:latest
+    container_name: nexus_mail
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+    networks:
+      - nexus_net
+
+  adminer:
+    image: adminer:latest
+    container_name: nexus_adminer
+    restart: unless-stopped
+    ports:
+      - "3457:8080"
+    depends_on:
+      - db
+    networks:
+      - nexus_net
+
+  backend:
+    build: ./backend
+    container_name: nexus_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      mail:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+      OWNER_EMAIL: ${OWNER_EMAIL}
+      OWNER_USERNAME: ${OWNER_USERNAME}
+      OWNER_DISPLAY_NAME: ${OWNER_DISPLAY_NAME}
+      MAX_POST_LEN: 280
+      UPLOAD_DIR: /uploads
+    volumes:
+      - uploads_data:/uploads
+    ports:
+      - "4000:4000"
+    networks:
+      - nexus_net
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE: /api
+    container_name: nexus_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3456:80"
+    networks:
+      - nexus_net
+
+networks:
+  nexus_net:
+    driver: bridge
+
+volumes:
+  db_data:
+  uploads_data:

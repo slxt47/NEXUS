@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+
+body, .font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+}
+
+body {
+  background: #000;
+  color: #86efac;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: rgba(74, 222, 128, 0.05); }
+::-webkit-scrollbar-thumb { background: rgba(74, 222, 128, 0.3); }
+::-webkit-scrollbar-thumb:hover { background: rgba(74, 222, 128, 0.5); }
+::selection { background: rgba(74, 222, 128, 0.3); color: #d1fae5; }
+
+/* CRT scanlines overlay */
+.scanlines::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 255, 65, 0.025) 3px,
+    rgba(0, 255, 65, 0.025) 3px
+  );
+  pointer-events: none;
+  z-index: 100;
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.97; }
+}
+.crt { animation: flicker 4s infinite; }
+
+.glow { text-shadow: 0 0 8px rgba(74, 222, 128, 0.5); }
